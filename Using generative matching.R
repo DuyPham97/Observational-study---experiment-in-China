@@ -1,15 +1,8 @@
 # Chen, Pan, and Xu "Sources of Authoritarian Responsiveness: A Field Experiment in China"
 # Replication File -- Table 3 Column (5)
 
-# Required packages (uncomment to install):
-# foreign: http://cran.r-project.org/web/packages/foreign/foreign.pdf
-# install.packages("foreign")
-
-#############################
-# ratio of public response
-#############################
-
 #Data should be downloaded here: https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/UMIBSL
+#Research paper can be read here: https://onlinelibrary.wiley.com/doi/full/10.1111/ajps.12207
 
 library(foreign)
 library (randomForest)
