@@ -1,0 +1,219 @@
+# Chen, Pan, and Xu "Sources of Authoritarian Responsiveness: A Field Experiment in China"
+# Replication File -- Table 3 Column (5)
+
+#Data should be downloaded here: https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/UMIBSL
+#Paper can be read here: https://onlinelibrary.wiley.com/doi/full/10.1111/ajps.12207
+
+# load data
+library(foreign)
+library (randomForest)
+library(rbounds)
+library(Matching)
+# load forum data
+d <- x
+names(d)
+
+# Intention to treat
+d0<-subset(d,treat==0)
+d1<-subset(d,treat==1)
+d2<-subset(d,treat==2)
+d3<-subset(d,treat==3)
+n0<-dim(d0)[1];n1<- dim(d1)[1];n2<-dim(d2)[1];n3<-dim(d3)[1]
+
+# Point estimate (for intention to treat)
+ratio0<-sum(d0$response==1&d0$response_public)/sum(d0$response==1)
+ratio1<-sum(d1$response==1&d1$response_public)/sum(d1$response==1)
+ratio2<-sum(d2$response==1&d2$response_public)/sum(d2$response==1)
+ratio3<-sum(d3$response==1&d3$response_public)/sum(d3$response==1)
+c(ratio1-ratio0,ratio2-ratio0,ratio3-ratio0,ratio0)  
+#ITT treatment effect #Treatment effect 1: 0.09 #Treatment effect 2: -0.02 #Treatment effect 3: 0.66 
+
+# Compliance group
+x0<-subset(d,treat==0 & posted == 1)
+x1<-subset(d,treat==1 & posted == 1)
+x2<-subset(d,treat==2 & posted == 1)
+x3<-subset(d,treat==3 & posted == 1)
+
+l0<-dim(x0)[1];l1<- dim(x1)[1];l2<-dim(x2)[1];l3<-dim(x3)[1]
+
+#Calculate the compliance rate
+p0<-nrow(d0);p1<- nrow(d1);p2<-nrow(d2);p3<-nrow(d3)
+m0<-nrow(x0);m1<-nrow(x1);m2<-nrow(x2);m3<-nrow(x3)
+c(m1/p1, m2/p2, m3/p3)
+#Compliance rate: Treatment 1: 0.73 # Treatment 2: 0.74 #Treatment 3: 0.73
+
+c(ratio1-ratio0,ratio2-ratio0,ratio3-ratio0) / c(m1/p1, m2/p2, m3/p3)
+#Local average treatment effect: 
+#Treatment 1: 0.127
+#Treatment 2: -0.03
+#Treatment 3: 0.05
+
+
+# Calculate the gamma (Rosenbaum's method of sensitivity analyses for 717 observations)
+psens(d1$response_public, d0$response_public, Gamma = 1.5, GammaInc = .1) #Gamma = 1.4, p-score = 0.052
+psens(d2$response_public, d0$response_public, Gamma = 1.5, GammaInc = .1) #Gamma = 1.0, p-score = 0.02
+psens(d3$response_public, d0$response_public, Gamma = 1.5, GammaInc = .1) #Gamma = 1.0, p-score = 0.05
+
+# Calculate the gamma (Rosenbaum's method of sensitivity analyses for 500 observations)
+psens(x1$response_public, x0$response_public, Gamma = 1.5, GammaInc = .1) #Gamma = 1.3, p-score = 0.036
+psens(x2$response_public, x0$response_public, Gamma = 1.5, GammaInc = .1) #Gamma = 1.0, p-score = 0.03
+psens(x3$response_public, x0$response_public, Gamma = 1.5, GammaInc = .1) #Gamma = 1.0, p-score = 0.06
+
+
+# bootstrap
+nboots<-1000
+results<-matrix(NA,4,nboots)
+
+set.seed(123)
+for (i in 1:nboots) {
+  s0<-d0[sample(1:n0,n0,replace=TRUE),]
+  s1<-d1[sample(1:n1,n1,replace=TRUE),]
+  s2<-d2[sample(1:n2,n2,replace=TRUE),]
+  s3<-d3[sample(1:n3,n3,replace=TRUE),]
+  ratio0<-sum(s0$response==1&s0$response_public)/sum(s0$response==1)
+  ratio1<-sum(s1$response==1&s1$response_public)/sum(s1$response==1)
+  ratio2<-sum(s2$response==1&s2$response_public)/sum(s2$response==1)
+  ratio3<-sum(s3$response==1&s3$response_public)/sum(s3$response==1)
+  results[1,i]<-ratio1-ratio0
+  results[2,i]<-ratio2-ratio0
+  results[3,i]<-ratio3-ratio0
+  results[4,i]<-ratio0  
+}  
+# standard errors
+apply(results,1,sd)
+#SE: 0.05498142 0.05476871 0.05648548 0.04168532
+
+# 95% confidence intervals
+apply(results,1,quantile,c(0.025,0.975))
+#             [,1]       [,2]        [,3]      [,4]
+# 2.5%  -0.02143388 -0.1016134 -0.05919203 0.5668437
+# 97.5%  0.19586894  0.1122440  0.16376477 0.7304610
+
+set.seed(124)
+for (a in 1:nboots) {
+  i0<-x0[sample(1:l0,l0,replace=TRUE),]
+  i1<-d1[sample(1:l1,l1,replace=TRUE),]
+  i2<-d2[sample(1:l2,l2,replace=TRUE),]
+  i3<-d3[sample(1:l3,l3,replace=TRUE),]
+  ratio0<-sum(i0$response==1&i0$response_public)/sum(i0$response==1)
+  ratio1<-sum(i1$response==1&i1$response_public)/sum(i1$response==1)
+  ratio2<-sum(i2$response==1&i2$response_public)/sum(i2$response==1)
+  ratio3<-sum(i3$response==1&i3$response_public)/sum(i3$response==1)
+  results[1,a]<-ratio1-ratio0
+  results[2,a]<-ratio2-ratio0
+  results[3,a]<-ratio3-ratio0
+  results[4,a]<-ratio0  
+}
+
+# standard errors
+apply(results,1,sd)
+#0.05077284 0.05323535 0.05250813 0.03741458
+
+# 95% confidence intervals
+apply(results,1,quantile,c(0.025,0.975))
+#             [,1]        [,2]        [,3]      [,4]
+#2.5%  -0.01833652 -0.11370057 -0.06761935 0.5906433
+#97.5%  0.17795596  0.09000498  0.14126265 0.7342051
+
+
+#Fisher's exact test #Treatement 1
+f0<-x0$response_public
+f1<-x1$response_public
+f2<-x2$response_public
+f3<-x3$response_public
+
+assignment = function(){
+  control = sample(c(f0,f1), size = 519, replace = FALSE)
+  treatment = sample(c(f0,f1), size = 519, replace = FALSE)
+  return (mean(treatment)-mean(control))
+}
+
+iter.RI <- function (iterations = 100000) {
+  for (i in 1:iterations) 
+  {storage.vector[i] <- assignment()
+  }
+  return(storage.vector)
+}
+
+storage.vector <- NULL
+results <- iter.RI()
+quantile(results, prob = c(0.025, 0.975))
+
+length(unique(results))
+
+plot(density(results), xlim = c(-0.15, 0.15), main = "Treatment 1")
+abline(v = -0.0385, lwd = 2, col = "red")
+abline(v = 0.0385, lwd = 2, col = "red")
+abline(v = 0.127, lwd = 2, col = "purple")
+#We are able to reject the null hypothesis, that is, there is a statistical treatment effect in the treatment 1 for the treated units
+
+#Fisher's exact test #Treatement 2
+assignment = function(){
+  control = sample(c(f0,f2), size = 519, replace = FALSE)
+  treatment = sample(c(f0,f2), size = 519, replace = FALSE)
+  return (mean(treatment)-mean(control))
+}
+
+iter.RI <- function (iterations = 100000) {
+  for (i in 1:iterations) 
+  {storage.vector[i] <- assignment()
+  }
+  return(storage.vector)
+}
+
+storage.vector <- NULL
+results <- iter.RI()
+quantile(results, prob = c(0.025, 0.975))
+
+length(unique(results))
+
+plot(density(results), xlim = c(-0.15, 0.15), main = "Treatment 2")
+abline(v = -0.037, lwd = 2, col = "red")
+abline(v = 0.037, lwd = 2, col = "red")
+abline(v = -0.03, lwd = 2, col = "purple")
+#We fail to reject the treatment effect, that is, there is no statistical treatment effect in the treatment 2 for the treated unit
+
+#Fisher's exact test #Treatement 3
+assignment = function(){
+  control = sample(c(f0,f3), size = 519, replace = FALSE)
+  treatment = sample(c(f0,f3), size = 519, replace = FALSE)
+  return (mean(treatment)-mean(control))
+}
+
+iter.RI <- function (iterations = 100000) {
+  for (i in 1:iterations) 
+  {storage.vector[i] <- assignment()
+  }
+  return(storage.vector)
+}
+
+storage.vector <- NULL
+results <- iter.RI()
+quantile(results, prob = c(0.025, 0.975))
+
+length(unique(results))
+
+plot(density(results), xlim = c(-0.15, 0.15), main = "Treatment 3")
+abline(v = -0.037, lwd = 2, col = "red")
+abline(v = 0.037, lwd = 2, col = "red")
+abline(v = 0.05, lwd = 2, col = "purple")
+#We are able to reject the null hypothesis, that is, there is a significant treatment effect in the third treatment for the treated units
+
+#Bounds estimation 
+c(nrow(d0)-nrow(i0), nrow(d1)-nrow(i1),nrow(d2)-nrow(i2),nrow(d3)-nrow(i3))
+c(table(i0$response_public),table(i1$response_public),table(i2$response_public),table(i3$response_public))
+
+#Check the balance of the compliers
+z = MatchBalance ( response_public ~ logpop + popgrow 
++ sexratio + illit + minor + unemploy + wk_agr +
+  wk_ind + wk_ser + income +logincome + loggdp + avggrowth +
+  logoutput_agr + logoutput_ind + logoutput_ser + numlfirm + loginvest +
+  logsaving + loggov_rev + loggov_exp, data = x0,x1, nboots=1000, weights = NULL)
+
+list = list()
+
+for (i in 21) {
+  z = c(z$BeforeMatching[[i]]$p.value)
+}
+
+z
